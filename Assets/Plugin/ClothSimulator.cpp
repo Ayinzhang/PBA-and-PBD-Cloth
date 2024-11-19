@@ -170,15 +170,15 @@ extern "C"  _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 
     for (int i = 0; i < iter; i++)
     {
         // Constrant
-        for (int i = 0; i < thr; i++) th[i] = thread(HandleConstaint, P2, k, n * n / thr * i, i == 15 ? n * n + 1 : n * n / thr * (i + 1));
+        for (int i = 0; i < thr; i++) th[i] = thread(HandleConstaint, P2, k, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
         for (int i = 0; i < thr; i++) th[i].join();
 
         // Gravity & Update & Calculate Local Position
-        for (int i = 0; i < thr; i++) th[i] = thread(UpdatePosition, ref(P1), ref(P2), g, d, t2, n * n / thr * i, i == 15 ? n * n + 1 : n * n / thr * (i + 1));
+        for (int i = 0; i < thr; i++) th[i] = thread(UpdatePosition, ref(P1), ref(P2), g, d, t2, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
         for (int i = 0; i < thr; i++) th[i].join();
     }
 
-    for (int i = 0; i < thr; i++) th[i] = thread(Transform, P2, ref(P), imat, n * n / thr * i, i == 15 ? n * n + 1 : n * n / thr * (i + 1));
+    for (int i = 0; i < thr; i++) th[i] = thread(Transform, P2, ref(P), imat, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
     for (int i = 0; i < thr; i++) th[i].join();
 
 }
