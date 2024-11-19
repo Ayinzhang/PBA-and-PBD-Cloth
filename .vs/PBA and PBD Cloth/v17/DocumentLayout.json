@@ -1,0 +1,53 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\PBA and PBD Cloth\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{2734528A-2131-123C-D11D-490139E0AEB0}|Assembly-CSharp.csproj|e:\\pba and pbd cloth\\assets\\scripts\\clothsimulator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2734528A-2131-123C-D11D-490139E0AEB0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\clothsimulator.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{2734528A-2131-123C-D11D-490139E0AEB0}|Assembly-CSharp.csproj|E:\\PBA and PBD Cloth\\assets\\scripts\\clothcontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{2734528A-2131-123C-D11D-490139E0AEB0}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\clothcontroler.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 1,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "ClothControler.cs",
+              "DocumentMoniker": "E:\\PBA and PBD Cloth\\Assets\\Scripts\\ClothControler.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\ClothControler.cs",
+              "ToolTip": "E:\\PBA and PBD Cloth\\Assets\\Scripts\\ClothControler.cs",
+              "RelativeToolTip": "Assets\\Scripts\\ClothControler.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAA0AAAAFAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-15T22:00:43.71Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ClothSimulator.cs",
+              "DocumentMoniker": "E:\\PBA and PBD Cloth\\Assets\\Scripts\\ClothSimulator.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\ClothSimulator.cs",
+              "ToolTip": "E:\\PBA and PBD Cloth\\Assets\\Scripts\\ClothSimulator.cs",
+              "RelativeToolTip": "Assets\\Scripts\\ClothSimulator.cs",
+              "ViewState": "AQIAAAAAAAAAAAAAAAAAAJMAAAAXAAAA",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2024-11-13T18:26:55.642Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
