@@ -15,7 +15,6 @@ struct float3
     float3& operator+=(const float3& other) { x += other.x; y += other.y; z += other.z; return *this; }
     float3& operator-=(const float3& other) { x -= other.x; y -= other.y; z -= other.z; return *this; }
     float Magnitude() const { return sqrt(x * x + y * y + z * z);}
-    float3 Normalized() const { float mag = Magnitude(); return float3(x / mag, y / mag, z / mag); }
 };
 
 struct Mat4x4 
@@ -34,7 +33,7 @@ struct Mat4x4
     }
 };
 
-const int n = 35; bool init; float3 P1[n * n], P2[n * n], F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n];
+const int n = 25; bool init; float3 P1[n * n], P2[n * n], F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n];
 thread th[n * n];
 
 void Init(Mat4x4 mat, float3 g)
@@ -102,18 +101,18 @@ void HandleConstaint(float3 P[], int k, int l, int r)
         {
             switch (c % 16)
             {
-            case 1: p = P[i] - P[i + n]; F[i] -= k * (p.Magnitude() - 2.0f / (n - 1)) * p.Normalized(); break;
-            case 2: p = P[i] - P[i - n]; F[i] -= k * (p.Magnitude() - 2.0f / (n - 1)) * p.Normalized(); break;
-            case 3: p = P[i] - P[i + 1]; F[i] -= k * (p.Magnitude() - 2.0f / (n - 1)) * p.Normalized(); break;
-            case 4: p = P[i] - P[i - 1]; F[i] -= k * (p.Magnitude() - 2.0f / (n - 1)) * p.Normalized(); break;
-            case 5: p = P[i] - P[i + n + 1]; F[i] -= k * (p.Magnitude() - 2.828f / (n - 1)) * p.Normalized(); break;
-            case 6: p = P[i] - P[i - n - 1]; F[i] -= k * (p.Magnitude() - 2.828f / (n - 1)) * p.Normalized(); break;
-            case 7: p = P[i] - P[i + n - 1]; F[i] -= k * (p.Magnitude() - 2.828f / (n - 1)) * p.Normalized(); break;
-            case 8: p = P[i] - P[i - n + 1]; F[i] -= k * (p.Magnitude() - 2.828f / (n - 1)) * p.Normalized(); break;
-            case 9: p = P[i] - P[i + 2 * n]; F[i] -= k * (p.Magnitude() - 4.0f / (n - 1)) * p.Normalized(); break;
-            case 10: p = P[i] - P[i - 2 * n]; F[i] -= k * (p.Magnitude() - 4.0f / (n - 1)) * p.Normalized(); break;
-            case 11: p = P[i] - P[i + 2]; F[i] -= k * (p.Magnitude() - 4.0f / (n - 1)) * p.Normalized(); break;
-            case 12: p = P[i] - P[i - 2]; F[i] -= k * (p.Magnitude() - 4.0f / (n - 1)) * p.Normalized(); break;
+                case 1: p = P[i] - P[i + n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 2: p = P[i] - P[i - n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 3: p = P[i] - P[i + 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 4: p = P[i] - P[i - 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 5: p = P[i] - P[i + n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+                case 6: p = P[i] - P[i - n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+                case 7: p = P[i] - P[i + n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+                case 8: p = P[i] - P[i - n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+                case 9: p = P[i] - P[i + 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 10: p = P[i] - P[i - 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 11: p = P[i] - P[i + 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+                case 12: p = P[i] - P[i - 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
             }
             c >>= 4;
         }
@@ -143,7 +142,7 @@ extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], 
         for (int j = 0; j < 5 * n * n - 8 * n + 1; j++)
         {
             int x = C[j].x, y = C[j].y; float z = C[j].z;
-            float3 f = k * ((P2[x] - P2[y]).Magnitude() - z) * (P2[x] - P2[y]).Normalized();
+            float3 f = k * (1 - z / (P2[x] - P2[y]).Magnitude()) * (P2[x] - P2[y]);
             F[x] -= f; F[y] += f;
         }
 
