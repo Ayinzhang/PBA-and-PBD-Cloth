@@ -10,9 +10,9 @@
 
 *C++ Thread的表现有些出乎意料，感觉可能是Thread过于耗了？不过C++比Unity的性能倒好了不少，感觉之后遇到想优化不适合Job + Burst并行化的代码都可以试试C++*
 
-|                  | Semi-Explicit Euler | Implicit Euler | PBD  | XPBD |
+|                  | Semi-Implicit Euler | Implicit Euler | PBD  | XPBD |
 | ---------------- | ------------------- | -------------- | ---- | ---- |
-| Unity (ms)       | 36.9                | N/A            | 70.9 | 52.2 |
+| Main Thread (ms) | 36.9                | N/A            | 70.9 | 52.2 |
 | Job + Burst (ms) | 1.6                 | N/A            | 2.1  | 2.2  |
 
 *隐式的炸了不计入考量，主线程下XPBD优于PBD应该是我在写PBD的时候用的雅可比而非高斯塞德尔，但看并行化的就行了。比较不甘的是Unity自己的Cloth组件模拟这些只需要0.2ms，而我的XPBD在保持稳定的情况下只能到0.4ms，小作坊下猛料也没下过官方，之后有空再研究下如何优化。*
