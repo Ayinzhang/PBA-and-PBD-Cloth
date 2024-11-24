@@ -12,6 +12,7 @@ struct float3
     float3 operator+(const float3& other) const { return float3(x + other.x, y + other.y, z + other.z); }
     float3 operator-(const float3& other) const { return float3(x - other.x, y - other.y, z - other.z); }
     friend float3 operator*(float other, const float3& vector) { return float3(vector.x * other, vector.y * other, vector.z * other); }
+    friend float3 operator/(const float3& vector, float other) { return float3(vector.x / other, vector.y / other, vector.z / other); }
     float3& operator+=(const float3& other) { x += other.x; y += other.y; z += other.z; return *this; }
     float3& operator-=(const float3& other) { x -= other.x; y -= other.y; z -= other.z; return *this; }
     float Magnitude() const { return sqrt(x * x + y * y + z * z);}
@@ -33,15 +34,10 @@ struct Mat4x4
     }
 };
 
-const int n = 25; bool init; float3 P1[n * n], P2[n * n], F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n];
-thread th[n * n];
+const int n = 35; bool init; float3 F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n]; thread th[n * n];
 
 void Init(Mat4x4 mat, float3 g)
 {
-    for (int i = 0; i < n; i++)
-        for (int j = 0; j < n; j++)
-            P1[i * n + j] = mat * float3(2.0f * i / (n - 1) - 1, 2.0f * j / (n - 1) - 1, 0), F[i * n + j] = g;
-
     int cnt = 0;
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
@@ -87,12 +83,17 @@ void Init(Mat4x4 mat, float3 g)
         }
 }
 
-void Transform(float3 Psrc[], float3 Pdst[], Mat4x4 mat, int l, int r)
+void TransformIn(float3 Psrc[], float3 Pdst[], float3 Plast[], float3 V[], Mat4x4 mat, float dt, int l, int r)
+{
+    for (int i = l; i < r; i++) Pdst[i] = mat * Psrc[i], V[i] = (Pdst[i] - Plast[i]) / dt;
+}
+
+void TransformOut(float3 Psrc[], float3 Pdst[], Mat4x4 mat, int l, int r)
 {
     for (int i = l; i < r; i++) Pdst[i] = mat * Psrc[i];
 }
 
-void HandleConstaint(float3 P[], int k, int l, int r)
+void HandleConstaint(float3 P[], long long CN[], int k, int l, int r)
 {
     for (int i = l; i < r; i++)
     {
@@ -119,23 +120,24 @@ void HandleConstaint(float3 P[], int k, int l, int r)
     }
 }
 
-void UpdatePosition(float3 P1[], float3 P2[], float3 g, float d, float t2, int l, int r)
+void UpdatePosition(float3 P1[], float3 P2[], float3 V[], float3 g, float d, float idt, int l, int r)
 {
     for (int i = l; i < r; i++)
     {
-        if (i != n - 1 && i != n * n - 1) P2[i] += d * (P2[i] - P1[i]) + t2 * F[i];
+        V[i] = d * V[i] + idt * F[i];
+        if (i != n - 1 && i != n * n - 1) P2[i] += idt * V[i];
         P1[i] = P2[i]; F[i] = g;
     }
 }
 
-extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], float3 P2[],
+extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], float3 P2[], float3 V[], constraint C[],
     Mat4x4 mat, Mat4x4 imat, float3 g, int k, int iter, float dt, float damping)
 {
     if(!init) Init(mat, g), init = true;
 
-    for (int i = 0; i < n * n; i++) P2[i] = mat * P[i];
+    for (int i = 0; i < n * n; i++) P2[i] = mat * P[i], V[i] += (P2[i] - P1[i]) / dt;
 
-    float t = dt / iter, t2 = t * t, d = pow(damping, 1.0f / iter);
+    float idt = dt / iter, d = pow(damping, 1.0f / iter);
     for (int i = 0; i < iter; i++)
     {
         // Constrant
@@ -149,7 +151,8 @@ extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], 
         // Gravity & Update & Calculate Local Position
         for (int j = 0; j < n * n; j++)
         {
-            if (j != n - 1 && j != n * n - 1) P2[j] += d * (P2[j] - P1[j]) + t2 * F[j];
+            V[j] = d * V[j] + idt * F[j];
+            if (j != n - 1 && j != n * n - 1) P2[j] += idt * V[j];
             P1[j] = P2[j]; F[j] = g;
         }
     }
@@ -157,27 +160,27 @@ extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], 
     for (int i = 0; i < n * n; i++) P[i] = imat * P2[i];
 }
 
-extern "C"  _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 P1[], float3 P2[],
+extern "C"  _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 P1[], float3 P2[], float3 V[], long long CN[],
     Mat4x4 mat, Mat4x4 imat, float3 g, int k, int iter, int thr, float dt, float damping)
 {
     if (!init) Init(mat, g), init = true;
 
-    for (int i = 0; i < thr; i++) th[i] = thread(Transform, P, ref(P2), mat, n * n / thr * i, i == thr - 1 ? n * n + 1: n * n / thr * (i + 1));
+    for (int i = 0; i < thr; i++) th[i] = thread(TransformIn, P, ref(P2), P1, ref(V), mat, dt, n * n / thr * i, i == thr - 1 ? n * n + 1: n * n / thr * (i + 1));
     for (int i = 0; i < thr; i++) th[i].join();
 
-    float t = dt / iter, t2 = t * t, d = pow(damping, 1.0f / iter);
+    float idt = dt / iter, d = pow(damping, 1.0f / iter);
     for (int i = 0; i < iter; i++)
     {
         // Constrant
-        for (int i = 0; i < thr; i++) th[i] = thread(HandleConstaint, P2, k, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
+        for (int i = 0; i < thr; i++) th[i] = thread(HandleConstaint, P2, CN, k, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
         for (int i = 0; i < thr; i++) th[i].join();
 
         // Gravity & Update & Calculate Local Position
-        for (int i = 0; i < thr; i++) th[i] = thread(UpdatePosition, ref(P1), ref(P2), g, d, t2, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
+        for (int i = 0; i < thr; i++) th[i] = thread(UpdatePosition, ref(P1), ref(P2), ref(V), g, d, idt, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
         for (int i = 0; i < thr; i++) th[i].join();
     }
 
-    for (int i = 0; i < thr; i++) th[i] = thread(Transform, P2, ref(P), imat, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
+    for (int i = 0; i < thr; i++) th[i] = thread(TransformOut, P2, ref(P), imat, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
     for (int i = 0; i < thr; i++) th[i].join();
 
 }

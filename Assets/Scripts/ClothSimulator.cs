@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Jobs;
@@ -7,15 +8,14 @@ using Unity.Burst; // Define¡¾BurstCompile¡¿
 using Unity.Collections; // Define¡¾NativeArray¡¿
 using Unity.Mathematics; // SIMD Math Library
 using Unity.Collections.LowLevel.Unsafe; // Quick Memory Copy
-using System.Runtime.InteropServices;
 
 public class ClothSimulator : MonoBehaviour
 {
     public enum Type { Semi_Implict, Semi_Implict_Burst, Semi_Implict_Cpp, Semi_Implict_CppThread, 
         Implict, Implict_Burst, PBD, PBD_Burst, XPBD, XPBD_Burst}
-    public Type type = Type.Semi_Implict; public int k = 5000, iter = 7, thread = 2; public float dt = 1f / 30, damping = 0.95f;
+    public Type type = Type.Semi_Implict; public int k = 2000, iter = 32, thread = 64; public float dt = 1f / 30, damping = 0.95f;
 
-    Mesh mesh; Text[] texts; Slider[] sliders; Vector3 g = new Vector3(0, -9.8f, 0); float t, rho = 0.995f; const int n = 25;
+    Mesh mesh; Text[] texts; Slider[] sliders; Vector3 g = new Vector3(0, -9.8f, 0); float t, rho = 0.995f; const int n = 35;
     Vector3[] P = new Vector3[n * n], P1 = new Vector3[n * n], P2 = new Vector3[n * n], F = new Vector3[n * n], G = new Vector3[n * n],
     V = new Vector3[n * n], SX = new Vector3[n * n]; Vector2[] UV = new Vector2[n * n]; int[] T = new int[(n - 1) * (n - 1) * 6]; 
     float[] W = new float[n * n]; int[] SN = new int[n * n];
@@ -30,11 +30,11 @@ public class ClothSimulator : MonoBehaviour
     NativeArray<int> SNN = new NativeArray<int>(n * n, Allocator.Persistent);
 
     [DllImport("ClothSimulator", CallingConvention = CallingConvention.Cdecl)]
-    static extern void Semi_Implict_Cpp( [In, Out] Vector3[] P, [In, Out] Vector3[] P1, [In, Out] Vector3[] P2,
+    static extern void Semi_Implict_Cpp( [In, Out] Vector3[] P, [In, Out] Vector3[] P1, [In, Out] Vector3[] P2, [In, Out] Vector3[] V, 
         Matrix4x4 mat, Matrix4x4 imat, Vector3 g, int k, int iter, float dt, float damping);
 
     [DllImport("ClothSimulator", CallingConvention = CallingConvention.Cdecl)]
-    static extern void Semi_Implict_CppThread([In, Out] Vector3[] P, [In, Out] Vector3[] P1, [In, Out] Vector3[] P2,
+    static extern void Semi_Implict_CppThread([In, Out] Vector3[] P, [In, Out] Vector3[] P1, [In, Out] Vector3[] P2, [In, Out] Vector3[] V,
         Matrix4x4 mat, Matrix4x4 imat, Vector3 g, int k, int iter, int thr, float dt, float damping);
 
     void Start()
@@ -50,8 +50,8 @@ public class ClothSimulator : MonoBehaviour
         for (int i = 0; i < n; i++)
             for (int j = 0; j < n; j++)
             {
-                P[i * n + j] = new Vector3(2f * i / (n - 1) - 1, 2f * j / (n - 1) - 1, 0);
-                P1[i * n + j] = P1N[i * n + j] = transform.TransformPoint(P[i * n + j]);
+                P[i * n + j] = PN[i * n + j] = new Vector3(2f * i / (n - 1) - 1, 2f * j / (n - 1) - 1, 0);
+                P1[i * n + j] = P1N[i * n + j] = P2[i * n + j] = P2N[i * n + j] = transform.TransformPoint(P[i * n + j]);
                 F[i * n + j] = FN[i * n + j] = G[i * n + j] = GN[i * n + j] = Vector3.zero;
                 UV[i * n + j] = new Vector2(1 - i / (n - 1f), j / (n - 1f));
             }
@@ -130,10 +130,10 @@ public class ClothSimulator : MonoBehaviour
                 Semi_ImplictBurst(thread);
                 break;
             case Type.Semi_Implict_Cpp:
-                Semi_Implict_Cpp(P, P1, P2, transform.localToWorldMatrix, transform.worldToLocalMatrix, g, k, iter, dt, damping);
+                Semi_Implict_Cpp(P, P1, P2, V, transform.localToWorldMatrix, transform.worldToLocalMatrix, g, k, iter, dt, damping);
                 break;
             case Type.Semi_Implict_CppThread:
-                Semi_Implict_CppThread(P, P1, P2, transform.localToWorldMatrix, transform.worldToLocalMatrix, g, k, iter, thread, dt, damping);
+                Semi_Implict_CppThread(P, P1, P2, V, transform.localToWorldMatrix, transform.worldToLocalMatrix, g, k, iter, thread, dt, damping);
                 break;
             case Type.Implict:
                 Implict();
@@ -157,14 +157,18 @@ public class ClothSimulator : MonoBehaviour
 
         // Update Mesh
         mesh.vertices = P;  mesh.RecalculateNormals();
-        texts[0].text = (int)(1000 * (Time.realtimeSinceStartup - t)) + " ms";
+        texts[0].text = String.Format("{0:N2} ms", 1000 * (Time.realtimeSinceStartup - t));
     }
 
     void Semi_Implict()
     {
-        for (int i = 0; i < n * n; i++) P2[i] = transform.TransformPoint(P[i]);
+        for (int i = 0; i < n * n; i++) 
+        { 
+            P2[i] = transform.TransformPoint(P[i]); 
+            V[i] += (P2[i] - P1[i]) / dt;
+        }
 
-        float t = dt / iter, t2 = t * t;
+        float idt = dt / iter, d = Mathf.Pow(damping, 1f / iter);
         for (int i = 0; i < iter; i++)
         {
             // Constrant
@@ -178,7 +182,8 @@ public class ClothSimulator : MonoBehaviour
             // Gravity & Update & Calculate Local Position
             for (int j = 0; j < n * n; j++)
             {
-                if (W[j] != 0) P2[j] += damping * (P2[j] - P1[j]) + t2 * F[j];
+                V[j] = d * V[j] + idt * F[j];
+                if (W[j] != 0) P2[j] += idt * V[j];
                 P1[j] = P2[j]; F[j] = g;
             }
         }
@@ -189,13 +194,13 @@ public class ClothSimulator : MonoBehaviour
     void Semi_ImplictBurst(int thr)
     {
         MemCpy(P, P2N);
-        handle = new TransformBurst() { mat = transform.localToWorldMatrix, P = P2N }.Schedule(n * n, n * n / thr); handle.Complete();
+        handle = new SemiImplictTransformInBurst() { mat = transform.localToWorldMatrix, P = P2N, P1 = P1N, V = VN, dt = dt }.Schedule(n * n, n * n / thr); handle.Complete();
 
-        float t = dt / iter, t2 = t * t;
+        float idt = dt / iter, d = Mathf.Pow(damping, 1f / iter);
         for (int i = 0; i < iter; i++)
         {
             handle = new HandleConstaintBurst() { F = FN, P2 = P2N, C = CN, k = k }.Schedule(n * n, n * n / thr); handle.Complete();
-            handle = new UpdatePositionBurst() { F = FN, P1 = P1N, P2 = P2N, g = g, d = damping, t2 = t2 }.Schedule(n * n, n * n / thr); handle.Complete();
+            handle = new UpdatePositionBurst() { V = VN, F = FN, W = WN, P1 = P1N, P2 = P2N, g = g, d = d, idt = idt }.Schedule(n * n, n * n / thr); handle.Complete();
         }
 
         handle = new TransformBurst() { mat = transform.worldToLocalMatrix, P = P2N }.Schedule(n * n, n * n / thr); handle.Complete();
@@ -318,16 +323,16 @@ public class ClothSimulator : MonoBehaviour
 
     void XPBD()
     {
-        for (int i = 0; i < n * n; i++) { V[i] += ((P2[i] = transform.TransformPoint(P[i])) - P1[i]) / dt; }
+        float idt = dt / iter, a = 1f / k / idt / idt, d = Mathf.Pow(damping, 1f / iter);
+        for (int i = 0; i < n * n; i++) { V[i] += ((P2[i] = transform.TransformPoint(P[i])) - P1[i]) / idt; }
 
-        float idt = dt / iter, a = 1f / k / idt / idt;
         for (int i = 0; i < iter; i++)
         {
             // Free Update
             for (int j = 0; j < n * n; j++)
             {
                 if (W[j] == 0) continue;
-                V[j] = damping * V[j] + idt * g;
+                V[j] = d * V[j] + idt * g;
                 P2[j] += idt * V[j];
             }
 
@@ -349,10 +354,11 @@ public class ClothSimulator : MonoBehaviour
     void XPBDBurst(int thr)
     {
         MemCpy(P, P2N);
-        handle = new XPBDTransformBurst() { P1 = P1N, P2 = P2N, V = VN,
-        mat = transform.localToWorldMatrix, dt = dt }.Schedule(n * n, n * n / thr); handle.Complete();
 
-        float idt = dt / iter, a = 1f / k / idt / idt;
+        float idt = dt / iter, a = 1f / k / idt / idt, d = Mathf.Pow(damping, 1f / iter);
+        handle = new XPBDTransformBurst() { P1 = P1N, P2 = P2N, V = VN,
+        mat = transform.localToWorldMatrix, idt = idt }.Schedule(n * n, n * n / thr); handle.Complete();
+
         for (int i = 0; i < iter; i++)
         {
             handle = new XPBDFreeUpdateBurst() { P2 = P2N, V = VN, W = WN,
@@ -376,6 +382,20 @@ public class ClothSimulator : MonoBehaviour
         public void Execute(int i)
         {
             P[i] = mat.MultiplyPoint3x4(P[i]);
+        }
+    }
+
+    [BurstCompile]
+    struct SemiImplictTransformInBurst : IJobParallelFor
+    {
+        public NativeArray<float3> P, P1, V;
+        [ReadOnly] public Matrix4x4 mat;
+        [ReadOnly] public float dt;
+
+        public void Execute(int i)
+        {
+            P[i] = mat.MultiplyPoint3x4(P[i]);
+            V[i] = (P[i] - P1[i]) / dt;
         }
     }
 
@@ -416,12 +436,14 @@ public class ClothSimulator : MonoBehaviour
     [BurstCompile]
     struct UpdatePositionBurst : IJobParallelFor
     {
-        public NativeArray<float3> F, P1, P2;
-        [ReadOnly] public float d, t2; [ReadOnly] public float3 g;
+        public NativeArray<float3> V, F, P1, P2;
+        [ReadOnly] public NativeArray<float> W;
+        [ReadOnly] public float d, idt; [ReadOnly] public float3 g;
 
         public void Execute(int i)
         {
-            if (i != n - 1 && i != n * n - 1) P2[i] += d * (P2[i] - P1[i]) + t2 * F[i];
+            V[i] = d * V[i] + idt * F[i];
+            if (W[i] != 0) P2[i] += idt * V[i];
             P1[i] = P2[i]; F[i] = g;
         }
     }
@@ -596,12 +618,12 @@ public class ClothSimulator : MonoBehaviour
         public NativeArray<float3> P2, V;
         [ReadOnly] public NativeArray<float3> P1;
         [ReadOnly] public Matrix4x4 mat;
-        [ReadOnly] public float dt;
+        [ReadOnly] public float idt;
 
         public void Execute(int i)
         {
             P2[i] = mat.MultiplyPoint3x4(P2[i]);
-            V[i] += (P2[i] - P1[i]) / dt;
+            V[i] += (P2[i] - P1[i]) / idt;
         }
     }
 
