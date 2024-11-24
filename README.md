@@ -1,5 +1,7 @@
 # PBA and PBD Cloth
 
+[中文版](README_zh.md)
+
 *The school symposium requires the paper presentations. In addition, I wanted to study PBD and XPBD before but was stuck at the paper reading stage, so I started this project. It aims to compare the impact of the operating environment (Unity, Unity Job+Burst, C++, C++Thread) and simulation methods (Semi-implicit Euler, Implicit Euler, PBD, XPBD) on performance. The corresponding PPT is also attached to the project, and those who are interested can also take a look (the following example parameters are 35x35 cloth grid, 2000 stiffness coefficient, 32 iterations, 64 threads, GTX1650 laptop. Parallelism is all lock-free multi-threading)*
 
 |           | Unity | Unity Job + Burst | C++  | C++ Thread |
