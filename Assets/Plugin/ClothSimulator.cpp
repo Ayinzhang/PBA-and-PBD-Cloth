@@ -34,7 +34,7 @@ struct Mat4x4
     }
 };
 
-const int n = 35; bool init; float3 F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n]; thread th[n * n];
+const int n = 21; bool init; float3 F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n]; thread th[n * n];
 
 void Init(Mat4x4 mat, float3 g)
 {
@@ -182,5 +182,4 @@ extern "C"  _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 
 
     for (int i = 0; i < thr; i++) th[i] = thread(TransformOut, P2, ref(P), imat, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
     for (int i = 0; i < thr; i++) th[i].join();
-
 }

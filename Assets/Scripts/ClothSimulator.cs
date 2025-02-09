@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Jobs;
-using Unity.Jobs; // Define¡¾IJob¡¿¡¾IJobParallelFor¡¿
-using Unity.Burst; // Define¡¾BurstCompile¡¿
-using Unity.Collections; // Define¡¾NativeArray¡¿
+using Unity.Jobs; // Define [IJob] [IJobParallelFor]
+using Unity.Burst; // Define [BurstCompile]
+using Unity.Collections; // Define [NativeArray]
 using Unity.Mathematics; // SIMD Math Library
 using Unity.Collections.LowLevel.Unsafe; // Quick Memory Copy
 
@@ -15,7 +15,7 @@ public class ClothSimulator : MonoBehaviour
         Implict, Implict_Burst, PBD, PBD_Burst, XPBD, XPBD_Burst}
     public Type type = Type.Semi_Implict; public int k = 2000, iter = 32, thread = 64; public float dt = 1f / 30, damping = 0.95f;
 
-    Mesh mesh; Text[] texts; Slider[] sliders; Vector3 g = new Vector3(0, -9.8f, 0); float t, rho = 0.995f; const int n = 35;
+    Mesh mesh; Text[] texts; Slider[] sliders; Vector3 g = new Vector3(0, -9.8f, 0); float t, rho = 0.995f; const int n = 21;
     Vector3[] P = new Vector3[n * n], P1 = new Vector3[n * n], P2 = new Vector3[n * n], F = new Vector3[n * n], G = new Vector3[n * n],
     V = new Vector3[n * n], SX = new Vector3[n * n]; Vector2[] UV = new Vector2[n * n]; int[] T = new int[(n - 1) * (n - 1) * 6]; 
     float[] W = new float[n * n]; int[] SN = new int[n * n];
@@ -731,7 +731,6 @@ public class ClothSimulator : MonoBehaviour
     public void ChangeType(int num)
     {
         type = (Type)num;
-        transform.position = Vector3.zero; 
         Start();
     }
 }
