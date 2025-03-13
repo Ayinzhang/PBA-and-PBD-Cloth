@@ -16,3 +16,11 @@
 | Job + Burst (ms) | 1.6                 | N/A            | 2.1  | 2.2  |
 
 *Implicit crashes and not be taken into account. XPBD is better than PBD in the main thread may because I used Jacobi instead of Gauss-Seidel when writing PBD, but just look at the parallelization. What disappoint me is that Unity's Cloth component only needs 0.2ms to simulate these, while my XPBD can only reach 0.4ms while maintaining stability. I will study how to optimize it later when I have time.* 
+
+PBD Cloth:
+
+![img](https://pica.zhimg.com/80/v2-f1a0758cdaa72daa7836aec27a6ac8df_720w.gif?source=d16d100b)
+
+XPBD Cloth:
+
+![img](https://picx.zhimg.com/80/v2-fb2d697cbb11746a20b37886ba0fc903_720w.gif?source=d16d100b)

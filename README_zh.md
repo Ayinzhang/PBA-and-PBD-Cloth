@@ -16,3 +16,11 @@
 | Job + Burst (ms) | 1.6                 | N/A            | 2.1  | 2.2  |
 
 *隐式的炸了不计入考量，主线程下XPBD优于PBD应该是我在写PBD的时候用的雅可比而非高斯塞德尔，但看并行化的就行了。比较不甘的是Unity自己的Cloth组件模拟这些只需要0.2ms，而我的XPBD在保持稳定的情况下只能到0.4ms，小作坊下猛料也没下过官方，之后有空再研究下如何优化。*
+
+PBD Cloth:
+
+![img](https://pica.zhimg.com/80/v2-f1a0758cdaa72daa7836aec27a6ac8df_720w.gif?source=d16d100b)
+
+XPBD Cloth:
+
+![img](https://picx.zhimg.com/80/v2-fb2d697cbb11746a20b37886ba0fc903_720w.gif?source=d16d100b)
