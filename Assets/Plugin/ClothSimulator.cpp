@@ -1,9 +1,10 @@
-﻿#include <cstdio>
+﻿#include <omp.h>
+#include <cstdio>
 #include <cmath>
 #include <thread>
 using namespace std;
 
-struct constraint { int x, y; float z; constraint(int a = 0, int b = 0, float c = 0) : x(a), y(b), z(c) {}};
+struct constraint { int x, y; float z; constraint(int a = 0, int b = 0, float c = 0) : x(a), y(b), z(c) {} };
 
 struct float3
 {
@@ -15,10 +16,10 @@ struct float3
     friend float3 operator/(const float3& vector, float other) { return float3(vector.x / other, vector.y / other, vector.z / other); }
     float3& operator+=(const float3& other) { x += other.x; y += other.y; z += other.z; return *this; }
     float3& operator-=(const float3& other) { x -= other.x; y -= other.y; z -= other.z; return *this; }
-    float Magnitude() const { return sqrt(x * x + y * y + z * z);}
+    float Magnitude() const { return sqrt(x * x + y * y + z * z); }
 };
 
-struct Mat4x4 
+struct Mat4x4
 {
     float thr[16];
 
@@ -36,19 +37,19 @@ struct Mat4x4
 
 const int n = 21; bool init; float3 F[n * n]; constraint C[5 * n * n - 8 * n + 1]; long long CN[n * n]; thread th[n * n];
 
-void Init(Mat4x4 mat, float3 g)
+void Init()
 {
     int cnt = 0;
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
         {
             // Stretch
-            if (i < n - 1) 
+            if (i < n - 1)
             {
                 C[cnt++] = constraint(i * n + j, (i + 1) * n + j, 2.0f / (n - 1));
                 CN[i * n + j] = (CN[i * n + j] << 4) + 1; CN[(i + 1) * n + j] = (CN[(i + 1) * n + j] << 4) + 2;
             }
-            if (j < n - 1) 
+            if (j < n - 1)
             {
                 C[cnt++] = constraint(i * n + j, i * n + j + 1, 2.0f / (n - 1));
                 CN[i * n + j] = (CN[i * n + j] << 4) + 3; CN[i * n + j + 1] = (CN[i * n + j + 1] << 4) + 4;
@@ -102,18 +103,18 @@ void HandleConstaint(float3 P[], long long CN[], int k, int l, int r)
         {
             switch (c % 16)
             {
-                case 1: p = P[i] - P[i + n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 2: p = P[i] - P[i - n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 3: p = P[i] - P[i + 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 4: p = P[i] - P[i - 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 5: p = P[i] - P[i + n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
-                case 6: p = P[i] - P[i - n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
-                case 7: p = P[i] - P[i + n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
-                case 8: p = P[i] - P[i - n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
-                case 9: p = P[i] - P[i + 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 10: p = P[i] - P[i - 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 11: p = P[i] - P[i + 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
-                case 12: p = P[i] - P[i - 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 1: p = P[i] - P[i + n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 2: p = P[i] - P[i - n]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 3: p = P[i] - P[i + 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 4: p = P[i] - P[i - 1]; F[i] -= k * (1 - 2.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 5: p = P[i] - P[i + n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+            case 6: p = P[i] - P[i - n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+            case 7: p = P[i] - P[i + n - 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+            case 8: p = P[i] - P[i - n + 1]; F[i] -= k * (1 - 2.828f / (n - 1) / p.Magnitude()) * p; break;
+            case 9: p = P[i] - P[i + 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 10: p = P[i] - P[i - 2 * n]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 11: p = P[i] - P[i + 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
+            case 12: p = P[i] - P[i - 2]; F[i] -= k * (1 - 4.0f / (n - 1) / p.Magnitude()) * p; break;
             }
             c >>= 4;
         }
@@ -130,10 +131,10 @@ void UpdatePosition(float3 P1[], float3 P2[], float3 V[], float3 g, float d, flo
     }
 }
 
-extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], float3 P2[], float3 V[], constraint C[],
+extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], float3 P2[], float3 V[],
     Mat4x4 mat, Mat4x4 imat, float3 g, int k, int iter, float dt, float damping)
 {
-    if(!init) Init(mat, g), init = true;
+    if (!init) Init(), init = true;
 
     for (int i = 0; i < n * n; i++) P2[i] = mat * P[i], V[i] += (P2[i] - P1[i]) / dt;
 
@@ -160,26 +161,57 @@ extern "C"  _declspec(dllexport) void Semi_Implict_Cpp(float3 P[], float3 P1[], 
     for (int i = 0; i < n * n; i++) P[i] = imat * P2[i];
 }
 
-extern "C"  _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 P1[], float3 P2[], float3 V[], long long CN[],
+extern "C" _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 P1[], float3 P2[], float3 V[],
     Mat4x4 mat, Mat4x4 imat, float3 g, int k, int iter, int thr, float dt, float damping)
 {
-    if (!init) Init(mat, g), init = true;
+    if (!init) Init(), init = true;
 
-    for (int i = 0; i < thr; i++) th[i] = thread(TransformIn, P, ref(P2), P1, ref(V), mat, dt, n * n / thr * i, i == thr - 1 ? n * n + 1: n * n / thr * (i + 1));
-    for (int i = 0; i < thr; i++) th[i].join();
+#pragma omp parallel num_threads(thr)
+    {
+        int tid = omp_get_thread_num();
+        int nthr = omp_get_num_threads();
+        int total = n * n;
+        int chunk = total / nthr;
+        int start = tid * chunk;
+        int end = (tid == nthr - 1) ? total : start + chunk;
+        TransformIn(P, P2, P1, V, mat, dt, start, end);
+    }
 
     float idt = dt / iter, d = pow(damping, 1.0f / iter);
     for (int i = 0; i < iter; i++)
     {
-        // Constrant
-        for (int i = 0; i < thr; i++) th[i] = thread(HandleConstaint, P2, CN, k, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
-        for (int i = 0; i < thr; i++) th[i].join();
+#pragma omp parallel num_threads(thr)
+        {
+            int tid = omp_get_thread_num();
+            int nthr = omp_get_num_threads();
+            int total = n * n;
+            int chunk = total / nthr;
+            int start = tid * chunk;
+            int end = (tid == nthr - 1) ? total : start + chunk;
+            HandleConstaint(P2, CN, k, start, end);
+        }
 
-        // Gravity & Update & Calculate Local Position
-        for (int i = 0; i < thr; i++) th[i] = thread(UpdatePosition, ref(P1), ref(P2), ref(V), g, d, idt, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
-        for (int i = 0; i < thr; i++) th[i].join();
+    // 更新位置
+#pragma omp parallel num_threads(thr)
+        {
+            int tid = omp_get_thread_num();
+            int nthr = omp_get_num_threads();
+            int total = n * n;
+            int chunk = total / nthr;
+            int start = tid * chunk;
+            int end = (tid == nthr - 1) ? total : start + chunk;
+            UpdatePosition(P1, P2, V, g, d, idt, start, end);
+        }
     }
 
-    for (int i = 0; i < thr; i++) th[i] = thread(TransformOut, P2, ref(P), imat, n * n / thr * i, i == thr - 1 ? n * n + 1 : n * n / thr * (i + 1));
-    for (int i = 0; i < thr; i++) th[i].join();
+#pragma omp parallel num_threads(thr)
+    {
+        int tid = omp_get_thread_num();
+        int nthr = omp_get_num_threads();
+        int total = n * n;
+        int chunk = total / nthr;
+        int start = tid * chunk;
+        int end = (tid == nthr - 1) ? total : start + chunk;
+        TransformOut(P2, P, imat, start, end);
+    }
 }
