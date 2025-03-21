@@ -1,7 +1,6 @@
 ﻿#include <omp.h>
 #include <cstdio>
 #include <cmath>
-#include <thread>
 using namespace std;
 
 struct constraint { int x, y; float z; constraint(int a = 0, int b = 0, float c = 0) : x(a), y(b), z(c) {} };
@@ -191,7 +190,6 @@ extern "C" _declspec(dllexport) void Semi_Implict_CppThread(float3 P[], float3 P
             HandleConstaint(P2, CN, k, start, end);
         }
 
-    // 更新位置
 #pragma omp parallel num_threads(thr)
         {
             int tid = omp_get_thread_num();

@@ -4,9 +4,9 @@
 
 *The school symposium requires the paper presentations. In addition, I wanted to study PBD and XPBD before but was stuck at the paper reading stage, so I started this project. It aims to compare the impact of the operating environment (Unity, Unity Job+Burst, C++, C++Thread) and simulation methods (Semi-implicit Euler, Implicit Euler, PBD, XPBD) on performance. (The following example parameters are 21x21 cloth grid, 2000 stiffness coefficient, 32 iterations, 64 threads, GTX1650 laptop. Parallelism is all lock-free multi-threading)*
 
-|           | Unity | Unity Job + Burst | C++  | C++ Thread |
-| --------- | ----- | ----------------- | ---- | ---------- |
-| Time (ms) | 5.6   | 0.47              | 0.56 | 0.76       |
+|           | Unity | Unity Job + Burst | C++  | C++ Parallelize |
+| --------- | ----- | ----------------- | ---- | --------------- |
+| Time (ms) | 5.6   | 0.47              | 0.56 | 0.76            |
 
 *The performance of C++ Thread is a bit unexpected. I think it might be because Thread too costly? However, the performance of C++ is much better than Unity. I think I can try C++ when I want to optimize the code that is not suitable for Job + Burst parallelization the next time.*
 
